@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Water Quality Calculator with Excel Export</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: auto;
+            background-color: #f2f9ff;
+        }
+        h1 {
+            text-align: center;
+        }
+        label, input {
+            display: block;
+            margin: 10px 0;
+            width: 100%;
+        }
+        input[type="number"] {
+            padding: 8px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            width: 100%;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            font-size: 16px;
+        }
+        .results {
+            margin-top: 20px;
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .results div {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Water Quality Calculator</h1>
+
+<label for="ec">Electrical Conductivity (EC) in µS/cm:</label>
+<input type="number" id="ec" placeholder="Enter EC value" step="any">
+
+<button id="calculateBtn">Calculate Parameters</button>
+<button id="downloadBtn" style="display:none;">Download All Results as Excel</button>
+
+<div class="results" id="results" style="display:none;">
+    <h3>Results:</h3>
+    <div id="tds"></div>
+    <div id="chloride"></div>
+    <div id="sulphate"></div>
+    <div id="alkalinity"></div>
+    <div id="sodium"></div>
+    <div id="potassium"></div>
+    <div id="silica"></div>
+</div>
+
+<h3>Previous Entries:</h3>
+<table id="resultTable">
+    <thead>
+        <tr>
+            <th>S.No</th>
+            <th>Sample Code</th>
+            <th>TDS (mg/L)</th>
+            <th>Chloride (mg/L)</th>
+            <th>Sulphate (mg/L)</th>
+            <th>Total Alkalinity (mg/L)</th>
+            <th>Sodium (mg/L)</th>
+            <th>Potassium (mg/L)</th>
+            <th>Silica (mg/L)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Entries will be added here -->
+    </tbody>
+</table>
+
+<script>
+    let resultData = [];
+    let entryCount = 0;
+
+    // Function to perform calculations based on the EC value entered
+    function calculate() {
+        const ec = parseFloat(document.getElementById("ec").value);
+        const sampleCode = `Sample${entryCount + 1}`; // Unique Sample Code for each entry
+
+        if (isNaN(ec) || ec <= 0) {
+            alert("Please enter a valid EC value.");
+            return;
+        }
+
+        // Perform calculations
+        const tds = ec * 0.65;
+        const chloride = tds * 0.36;
+        const sulphate = tds * 0.23;
+        const alkalinity = tds * 0.32;
+        const sodium = chloride * 0.43;
+        const potassium = sodium * 0.25;
+        const silica = sodium * 0.18;
+
+        // Update display with the calculated values
+        document.getElementById("results").style.display = "block";
+        document.getElementById("downloadBtn").style.display = "block";
+
+        document.getElementById("tds").innerText = `TDS: ${tds.toFixed(2)} mg/L`;
+        document.getElementById("chloride").innerText = `Chloride: ${chloride.toFixed(2)} mg/L`;
+        document.getElementById("sulphate").innerText = `Sulphate: ${sulphate.toFixed(2)} mg/L`;
+        document.getElementById("alkalinity").innerText = `Total Alkalinity: ${alkalinity.toFixed(2)} mg/L`;
+        document.getElementById("sodium").innerText = `Sodium: ${sodium.toFixed(2)} mg/L`;
+        document.getElementById("potassium").innerText = `Potassium: ${potassium.toFixed(2)} mg/L`;
+        document.getElementById("silica").innerText = `Silica: ${silica.toFixed(2)} mg/L`;
+
+        // Add entry to the result table
+        entryCount++;
+        const tableBody = document.getElementById("resultTable").getElementsByTagName("tbody")[0];
+        const newRow = tableBody.insertRow();
+
+        // Add cells to the new row
+        newRow.insertCell(0).innerText = entryCount;
+        newRow.insertCell(1).innerText = sampleCode;
+        newRow.insertCell(2).innerText = tds.toFixed(2);
+        newRow.insertCell(3).innerText = chloride.toFixed(2);
+        newRow.insertCell(4).innerText = sulphate.toFixed(2);
+        newRow.insertCell(5).innerText = alkalinity.toFixed(2);
+        newRow.insertCell(6).innerText = sodium.toFixed(2);
+        newRow.insertCell(7).innerText = potassium.toFixed(2);
+        newRow.insertCell(8).innerText = silica.toFixed(2);
+
+        // Store data for Excel export
+        resultData.push({
+            "S.No": entryCount,
+            "Sample Code": sampleCode,
+            "TDS (mg/L)": tds.toFixed(2),
+            "Chloride (mg/L)": chloride.toFixed(2),
+            "Sulphate (mg/L)": sulphate.toFixed(2),
+            "Total Alkalinity (mg/L)": alkalinity.toFixed(2),
+            "Sodium (mg/L)": sodium.toFixed(2),
+            "Potassium (mg/L)": potassium.toFixed(2),
+            "Silica (mg/L)": silica.toFixed(2)
+        });
+    }
+
+    // Function to trigger Excel file download
+    function downloadExcel() {
+        if (resultData.length === 0) {
+            alert("No results to download.");
+            return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(resultData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Water Quality Results");
+
+        // Trigger file download
+        XLSX.writeFile(workbook, "Water_Quality_Results.xlsx");
+    }
+
+    // Fix for button functionality
+    document.getElementById("calculateBtn").onclick = calculate;
+    document.getElementById("downloadBtn").onclick = downloadExcel;
+</script>
+
+</body>
+</html>						
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								
+Issued to		"M/s. ITD Cementation India Limited,"					Report No	PCEI/TR-N-14007
+		"R.M.S Tower ,No.2, Mahalakshmi Street,"					Report Date	0
+		"T.Nagar, Chennai -600 017."						
+								
+								
+Sampling Location		Kodambakkam Ramp			Project Name		CMRL/CON/PHASE-II/C4/UG-2/2022	
+Sample Description		Noise Monitoring			Category of Area		Commercial Area	
+Sampling Method		IS 9989 – 1981 (RA 2020)			Sample Reference No		PCEI/N-807-12-24	
+Sampled by		Laboratory			Sampling Date		21.12.2024 to 22.12.2024	
+Equipment Installed		1.5 m from Ground Level			Sample Received On		22.12.2024	
+Group		Atmospheric Pollution			Test Commenced On		23.12.2024	
+Discipline		Chemical			Test Completed On		0	
+								
+								
+REFERENCE EQUIPMENT DETAILS								
+Equipment Name		Make/Model	Equipment ID		Calibration Date		Due Date	
+Sound Level Meter with Data Logger		Lutron/SL-4023SD	PCEI/EQ/12		02.05.2024		01.05.2025	
+								
+Day Time				Night Time				
+Date	Time	Readings dB(A)		Date	Time	Readings dB(A)		
+15.03.2025	10:00 - 11:00	66.8		15.03.2025	22:00 - 23:00	50.3		
+15.03.2025	11:00 - 12:00	57.8		15.03.2025	23:00 - 00:00	53.2		
+15.03.2025	12:00 - 13:00	57.0		16.03.2025	00:00 - 01:00	48.6		
+15.03.2025	13:00 - 14:00	55.5		16.03.2025	01:00 - 02:00	50.2		
+15.03.2025	14:00 - 15:00	56.7		16.03.2025	02:00 - 03:00	52.5		
+15.03.2025	15:00 - 16:00	57.0		16.03.2025	03:00 - 04:00	51.5		
+15.03.2025	16:00 - 17:00	58.6		16.03.2025	04:00 - 05:00	50.5		
+15.03.2025	17:00 - 18:00	56.8		16.03.2025	05:00 - 06:00	48.6		
+15.03.2025	18:00 - 19:00	56.5						
+15.03.2025	19:00 - 20:00	53.8						
+15.03.2025	20:00 - 21:00	51.7		Time	Min	Max	Leq	Limit
+15.03.2025	21:00 - 22:00	50.9		Day	50.9	66.8	57.9	65 dB(A)
+16.03.2025	06:00 - 07:00	51.0		Night	48.6	53.2	51.0	55 dB(A)
+16.03.2025	07:00 - 08:00	51.6						
+16.03.2025	08:00 - 09:00	51.3						
+16.03.2025	09:00 - 10:00	51.2						
+								
+Note:								
+"Limit as per THE NOISE POLLUTION (REGULATION AND CONTROL) RULES, 2000,  Schedule Ambient Air Quality Standards in respect of Noise in Commercial Area Daytime 65 dB(A) & Night Time 55 dB(A). 1. Day time shall mean from 6.00 a.m. to 10.00 p.m. 2. Night time shall mean from 10.00 p.m. to 6.00 a.m. The Noise level were monitored as per IS 9989-1981 and CPCB Protocol for Ambient Noise Level Monitoring, Jul 2015.
+"								
+INTERPRETATION:								
+The above result shows that the noise level meets the NAAQ standard for commercial area noise levels.								
+								
+								
+*** End of Report ***								
+				Page 1 of 1				
+								
+								
+								
+Verified By					            Authorised Signatory 			
+								
+								
+								
+								
+								
+								
+				 				
